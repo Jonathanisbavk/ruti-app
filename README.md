@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RUTI — Mockup funcional
 
-## Getting Started
+> **Formalización, seguridad y conexión** para conductores de transporte en Lima/Callao.
+> Prototipo para evaluación de jurados. Creaciones Fast.
 
-First, run the development server:
+App móvil (web) que demuestra los 5 pasos de la propuesta RUTI:
+
+1. **Login con Google** (simulado, sin fricción para la demo).
+2. **Registro por voz con un agente de IA** — el conductor se registra hablando.
+3. **Documentos + alertas inteligentes** de vencimiento (SOAT, licencia, etc.).
+4. **Mapa con GPS** y pasajeros cercanos en tiempo real.
+5. **Reputación vial gamificada** — score, niveles (Bronce→Oro), insignias y beneficios.
+
+## Stack (todo gratis)
+
+- **Next.js 16 + React 19 + TypeScript** (App Router)
+- **Tailwind CSS 4** — diseño mobile-first con marco de teléfono
+- **Zustand + localStorage** — sin backend ni base de datos
+- **react-leaflet + OpenStreetMap** — mapas sin API key
+- **Web Speech API** — voz del navegador (reconocimiento + síntesis)
+- **Google Gemini** (`gemini-2.0-flash`, free tier) — IA conversacional, con
+  fallback por reglas si no hay API key
+
+## Ejecutar en local
 
 ```bash
+npm install
+cp .env.example .env.local   # opcional: añade tu GEMINI_API_KEY
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abre http://localhost:3000 **en Google Chrome** (mejor soporte de Web Speech API)
+y permite **micrófono** y **ubicación** cuando el navegador lo pida.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> Sin `GEMINI_API_KEY` la app funciona igual: el agente de voz usa un parser
+> guionizado por reglas. Con la key, las respuestas son conversacionales.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Conseguir la API key de Gemini (gratis, sin tarjeta)
 
-## Learn More
+1. Entra a https://aistudio.google.com/app/apikey
+2. Crea una API key y cópiala.
+3. Pégala en `.env.local` como `GEMINI_API_KEY=...`
 
-To learn more about Next.js, take a look at the following resources:
+## Desplegar en Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Sube el repo a GitHub e impórtalo en https://vercel.com/new (framework Next.js, detección automática).
+2. En **Project Settings → Environment Variables** añade `GEMINI_API_KEY` (opcional).
+3. Deploy. Comparte la URL pública con los jurados.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+# o desde la CLI
+npm i -g vercel
+vercel        # preview
+vercel --prod # producción
+```
 
-## Deploy on Vercel
+## Flujo de demo sugerido
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Login → registro por voz (habla y mira cómo se llenan los campos) → documentos
+(sube un archivo y observa la alerta de vencimiento) → mapa (acepta un pasajero,
+sube el ingreso) → reputación (simula eventos y mira subir/bajar el score).
+El botón **Reiniciar demo** (en Reputación) restablece los datos.
