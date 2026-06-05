@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signInWithPopup } from "firebase/auth";
+import { auth, googleProvider, firebaseEnabled } from "@/lib/firebase";
 import { useRuti } from "@/lib/store";
 
 const USUARIO_DEMO = {
@@ -38,10 +40,29 @@ export function GoogleLoginButton() {
   const login = useRuti((s) => s.login);
   const conductorCompleto = useRuti((s) => s.conductorCompleto);
   const [cargando, setCargando] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handle = () => {
+  const handle = async () => {
+    setError(null);
     setCargando(true);
-    // Simula el handshake de OAuth para que la demo nunca falle.
+
+    if (firebaseEnabled && auth) {
+      try {
+        // Login real con Google. AuthProvider carga el perfil y redirige.
+        await signInWithPopup(auth, googleProvider);
+        // No navegamos aquí: AuthProvider hace el push tras cargar el perfil.
+      } catch (e) {
+        const code = (e as { code?: string })?.code ?? "";
+        if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request") {
+          console.error("Error de login:", e);
+          setError("No se pudo iniciar sesión. Intenta de nuevo.");
+        }
+        setCargando(false);
+      }
+      return;
+    }
+
+    // Fallback simulado (sin credenciales de Firebase): la demo nunca falla.
     setTimeout(() => {
       login(USUARIO_DEMO);
       router.push(conductorCompleto() ? "/documentos" : "/onboarding");
@@ -49,22 +70,27 @@ export function GoogleLoginButton() {
   };
 
   return (
-    <button
-      onClick={handle}
-      disabled={cargando}
-      className="flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-3.5 font-semibold text-gray-800 shadow-lg transition hover:bg-gray-50 active:scale-[0.99] disabled:opacity-70"
-    >
-      {cargando ? (
-        <>
-          <span className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700" />
-          Conectando…
-        </>
-      ) : (
-        <>
-          <GoogleG />
-          Continuar con Google
-        </>
+    <div className="space-y-2">
+      <button
+        onClick={handle}
+        disabled={cargando}
+        className="flex w-full items-center justify-center gap-3 rounded-xl bg-white px-4 py-3.5 font-semibold text-gray-800 shadow-lg transition hover:bg-gray-50 active:scale-[0.99] disabled:opacity-70"
+      >
+        {cargando ? (
+          <>
+            <span className="h-5 w-5 animate-spin rounded-full border-2 border-gray-300 border-t-gray-700" />
+            Conectando…
+          </>
+        ) : (
+          <>
+            <GoogleG />
+            Continuar con Google
+          </>
+        )}
+      </button>
+      {error && (
+        <p className="text-center text-xs text-danger">{error}</p>
       )}
-    </button>
+    </div>
   );
 }

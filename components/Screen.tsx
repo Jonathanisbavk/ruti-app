@@ -2,9 +2,11 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
+import { auth, firebaseEnabled } from "@/lib/firebase";
 import { useRuti } from "@/lib/store";
 import { Avatar, RutiLogo } from "./Brand";
-import { LogoutIcon } from "./icons";
+import { LogOut } from "lucide-react";
 
 /** Envoltorio de pantallas internas: exige sesión y dibuja el encabezado. */
 export function Screen({
@@ -22,19 +24,27 @@ export function Screen({
 }) {
   const router = useRouter();
   const usuario = useRuti((s) => s.usuario);
-  const hydrated = useRuti((s) => s.hydrated);
+  const authReady = useRuti((s) => s.authReady);
   const logout = useRuti((s) => s.logout);
 
-  const cerrarSesion = () => {
-    logout();
+  const cerrarSesion = async () => {
+    if (firebaseEnabled && auth) {
+      try {
+        await signOut(auth); // AuthProvider limpia el store al detectar logout.
+      } catch (e) {
+        console.error("Error al cerrar sesión:", e);
+      }
+    } else {
+      logout();
+    }
     router.replace("/");
   };
 
   useEffect(() => {
-    if (hydrated && !usuario) router.replace("/");
-  }, [hydrated, usuario, router]);
+    if (authReady && !usuario) router.replace("/");
+  }, [authReady, usuario, router]);
 
-  if (!hydrated) {
+  if (!authReady) {
     return (
       <div className="flex h-full items-center justify-center text-sm text-muted">
         Cargando…
@@ -44,31 +54,31 @@ export function Screen({
   if (!usuario) return null;
 
   return (
-    <div className="flex h-full flex-col">
-      <header className="flex items-center justify-between border-b border-border bg-background/85 px-5 py-3.5 backdrop-blur">
-        <div className="flex items-center gap-2.5">
-          <RutiLogo size={34} />
+    <div className="flex h-full flex-col relative z-0">
+      <header className="flex items-center justify-between border-b border-border/50 glass px-5 py-3.5 z-10 sticky top-0">
+        <div className="flex items-center gap-3">
+          <RutiLogo size={36} />
           <div>
-            <h1 className="text-base font-bold leading-tight">{titulo}</h1>
+            <h1 className="text-[17px] font-extrabold leading-tight tracking-tight">{titulo}</h1>
             {subtitulo && (
-              <p className="text-[11px] text-muted">{subtitulo}</p>
+              <p className="text-xs text-muted/80">{subtitulo}</p>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Avatar nombre={usuario.nombre} size={34} />
+        <div className="flex items-center gap-3">
+          <Avatar nombre={usuario.nombre} size={36} />
           <button
             onClick={cerrarSesion}
             aria-label="Cerrar sesión"
             title="Cerrar sesión"
-            className="rounded-lg border border-border p-1.5 text-muted transition-colors hover:border-danger/50 hover:text-danger"
+            className="rounded-xl border border-border/50 bg-surface-2/30 p-2 text-muted transition-all hover:border-danger/50 hover:bg-danger/10 hover:text-danger hover:scale-105 active:scale-95"
           >
-            <LogoutIcon className="h-4 w-4" />
+            <LogOut className="h-[18px] w-[18px]" strokeWidth={2.5} />
           </button>
         </div>
       </header>
       <div
-        className={`min-h-0 flex-1 px-5 py-4 ${
+        className={`min-h-0 flex-1 px-5 py-5 ${
           fill ? "flex flex-col" : "no-scrollbar overflow-y-auto"
         }`}
       >

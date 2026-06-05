@@ -1,36 +1,25 @@
 @import "tailwindcss";
 
-:root {
-  /* Paleta basada en el navy del logo RUTI (#000c46) */
-  --background: #000c46;
-  --surface: #081a5e;
-  --surface-2: #11267a;
-  --foreground: #eef2ff;
-  --muted: #9fb0d9;
-  --primary: #2f5bff;
-  --primary-soft: #2347d6;
-  --accent: #6ea8ff;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --danger: #f87171;
-  --border: #1c2f74;
+@theme {
+  --color-background: #09090b; /* Zinc 950 */
+  --color-surface: rgba(24, 24, 27, 0.4);
+  --color-surface-2: rgba(39, 39, 42, 0.6);
+  --color-foreground: #fafafa;
+  --color-muted: #a1a1aa;
+  --color-primary: #8b5cf6; /* Violeta Neón */
+  --color-primary-soft: rgba(139, 92, 246, 0.2);
+  --color-accent: #06b6d4; /* Cyan */
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-border: rgba(255, 255, 255, 0.1);
+  --font-sans: var(--font-outfit), var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-surface: var(--surface);
-  --color-surface-2: var(--surface-2);
-  --color-foreground: var(--foreground);
-  --color-muted: var(--muted);
-  --color-primary: var(--primary);
-  --color-primary-soft: var(--primary-soft);
-  --color-accent: var(--accent);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-danger: var(--danger);
-  --color-border: var(--border);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  --background: #09090b;
+  --foreground: #fafafa;
 }
 
 html,
@@ -39,62 +28,83 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(1200px 600px at 50% -10%, #0a1f86 0%, transparent 60%),
-    var(--background);
+  background-color: var(--background);
+  /* Mesh Gradient oscuro futurista para afuera del teléfono */
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+    radial-gradient(at 50% 0%, hsla(225,39%,30%,0.2) 0, transparent 50%), 
+    radial-gradient(at 100% 0%, hsla(339,49%,30%,0.2) 0, transparent 50%);
   color: var(--foreground);
-  font-family: var(--font-sans), system-ui, Arial, sans-serif;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-/* Esconde la barra de scroll dentro del marco del teléfono */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+/* Glassmorphism Util */
+.glass {
+  background: rgba(24, 24, 27, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-@keyframes pulse-ring {
-  0% {
-    transform: scale(0.9);
-    opacity: 0.7;
-  }
-  70% {
-    transform: scale(1.6);
-    opacity: 0;
-  }
-  100% {
-    opacity: 0;
-  }
+.glass-panel {
+  background: linear-gradient(145deg, rgba(39, 39, 42, 0.4) 0%, rgba(24, 24, 27, 0.4) 100%);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
-.mic-pulse::before {
+
+/* Animaciones */
+@keyframes pulse-ring {
+  0% { transform: scale(0.9); opacity: 0.8; }
+  70% { transform: scale(1.8); opacity: 0; }
+  100% { opacity: 0; }
+}
+
+.mic-pulse {
+  position: relative;
+}
+
+.mic-pulse::before, .mic-pulse::after {
   content: "";
   position: absolute;
   inset: 0;
   border-radius: 9999px;
-  background: var(--primary);
-  animation: pulse-ring 1.6s ease-out infinite;
+  background: var(--color-primary);
   z-index: -1;
 }
 
-@keyframes fade-up {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.fade-up {
-  animation: fade-up 0.35s ease both;
+.mic-pulse::before {
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
 }
 
-/* Leaflet sobre fondo oscuro */
-.leaflet-container {
-  background: #000c46;
-  font-family: var(--font-sans), sans-serif;
+.mic-pulse::after {
+  animation: pulse-ring 2s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+  animation-delay: 1s;
 }
+
+.fade-up {
+  animation: fade-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Scrollbar oculta */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Custom Leaflet Dark Mode */
+.leaflet-container {
+  background: #09090b !important;
+  font-family: var(--font-sans) !important;
+}
+.leaflet-layer,
+.leaflet-control-zoom-in,
+.leaflet-control-zoom-out,
+.leaflet-control-attribution {
+  filter: invert(100%) hue-rotate(180deg) brightness(95%) contrast(90%);
+}
+

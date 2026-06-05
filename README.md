@@ -41,6 +41,12 @@ y permite **micrófono** y **ubicación** cuando el navegador lo pida.
 2. Crea una API key y cópiala.
 3. Pégala en `.env.local` como `GEMINI_API_KEY=...`
 
+### Login real con Google + perfiles por usuario (Firebase)
+
+Por defecto el login es **simulado** (sin configuración). Para activar
+autenticación real con Google y guardar el perfil de cada conductor en
+Firestore, sigue la guía paso a paso en **[FIREBASE-SETUP.md](FIREBASE-SETUP.md)**.
+
 ## Desplegar en Vercel
 
 1. Sube el repo a GitHub e impórtalo en https://vercel.com/new (framework Next.js, detección automática).

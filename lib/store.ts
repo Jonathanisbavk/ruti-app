@@ -11,6 +11,7 @@ import type {
 } from "./types";
 import { documentosSeed } from "./seed";
 import { EVENTOS, EventoKey, clampScore } from "./gamification";
+import type { PerfilData } from "./profile";
 
 interface RegistroEvento {
   id: string;
@@ -22,6 +23,8 @@ interface RegistroEvento {
 
 interface RutiState {
   usuario: Usuario | null;
+  /** uid de Firebase del usuario autenticado (null en modo simulado). */
+  uid: string | null;
   conductor: Conductor;
   documentos: Documento[];
   score: number;
@@ -32,11 +35,22 @@ interface RutiState {
   /** true una vez que Zustand rehidrató desde localStorage. Evita que el
    *  guard de sesión redirija a login antes de leer el estado persistido. */
   hydrated: boolean;
+  /** true cuando ya se resolvió el estado de autenticación (Firebase o
+   *  rehidratación local). El guard de sesión espera a esto. */
+  authReady: boolean;
 
   // acciones
   setHydrated: () => void;
+  setAuthReady: (v: boolean) => void;
   login: (u: Usuario) => void;
   logout: () => void;
+  setUid: (uid: string | null) => void;
+  /** Carga el perfil (Firestore) en el store al iniciar sesión. */
+  hydrateProfile: (data: PerfilData) => void;
+  /** Limpia la sesión y restablece a valores por defecto. */
+  clearSession: () => void;
+  /** Snapshot serializable del perfil para guardar en Firestore. */
+  perfilSnapshot: () => PerfilData | null;
   setConductorCampo: (campo: keyof Conductor, valor: string) => void;
   mergeConductor: (parcial: Partial<Conductor>) => void;
   conductorCompleto: () => boolean;
@@ -59,6 +73,7 @@ export const useRuti = create<RutiState>()(
   persist(
     (set, get) => ({
       usuario: null,
+      uid: null,
       conductor: { ...conductorVacio },
       documentos: documentosSeed,
       score: 62,
@@ -67,10 +82,55 @@ export const useRuti = create<RutiState>()(
       pasajerosAceptados: [],
       ingresos: 0,
       hydrated: false,
+      authReady: false,
 
       setHydrated: () => set({ hydrated: true }),
+      setAuthReady: (v) => set({ authReady: v }),
       login: (u) => set({ usuario: u }),
-      logout: () => set({ usuario: null }),
+      logout: () => set({ usuario: null, uid: null }),
+      setUid: (uid) => set({ uid }),
+
+      hydrateProfile: (data) =>
+        set({
+          usuario: data.perfil,
+          conductor: { ...conductorVacio, ...data.conductor },
+          documentos: data.documentos?.length
+            ? data.documentos
+            : documentosSeed.map((d) => ({ ...d })),
+          score: data.score ?? 62,
+          historial: data.historial ?? [],
+          rutaSeleccionada: data.rutaSeleccionada ?? null,
+          pasajerosAceptados: data.pasajerosAceptados ?? [],
+          ingresos: data.ingresos ?? 0,
+        }),
+
+      clearSession: () =>
+        set({
+          usuario: null,
+          uid: null,
+          conductor: { ...conductorVacio },
+          documentos: documentosSeed.map((d) => ({ ...d, archivoNombre: null })),
+          score: 62,
+          historial: [],
+          rutaSeleccionada: null,
+          pasajerosAceptados: [],
+          ingresos: 0,
+        }),
+
+      perfilSnapshot: () => {
+        const s = get();
+        if (!s.usuario) return null;
+        return {
+          perfil: s.usuario,
+          conductor: s.conductor,
+          documentos: s.documentos,
+          score: s.score,
+          historial: s.historial,
+          rutaSeleccionada: s.rutaSeleccionada,
+          pasajerosAceptados: s.pasajerosAceptados,
+          ingresos: s.ingresos,
+        };
+      },
 
       setConductorCampo: (campo, valor) =>
         set((s) => ({ conductor: { ...s.conductor, [campo]: valor } })),
