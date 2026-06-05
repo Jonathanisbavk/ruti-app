@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, getRedirectResult } from "firebase/auth";
 import { auth, firebaseEnabled } from "@/lib/firebase";
 import { cargarOCrearPerfil, guardarPerfil } from "@/lib/profile";
 import { useRuti } from "@/lib/store";
@@ -31,6 +31,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
       return unsub;
     }
+
+    // Completa el flujo de redirect al volver de Google (fallback de popup).
+    // onAuthStateChanged también disparará con el usuario; esto captura errores.
+    getRedirectResult(auth).catch((e) =>
+      console.error("Error al volver del login con Google:", e),
+    );
 
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
       const store = useRuti.getState();

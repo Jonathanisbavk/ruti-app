@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithPopup } from "firebase/auth";
+import { signInWithPopup, signInWithRedirect } from "firebase/auth";
 import { auth, googleProvider, firebaseEnabled } from "@/lib/firebase";
 import { useRuti } from "@/lib/store";
 
@@ -53,7 +53,21 @@ export function GoogleLoginButton() {
         // No navegamos aquí: AuthProvider hace el push tras cargar el perfil.
       } catch (e) {
         const code = (e as { code?: string })?.code ?? "";
-        if (code !== "auth/popup-closed-by-user" && code !== "auth/cancelled-popup-request") {
+        // Si el navegador bloquea el popup (muy común en móviles), caemos a
+        // redirect: navega a Google y vuelve; AuthProvider completa el login.
+        if (
+          code === "auth/popup-blocked" ||
+          code === "auth/cancelled-popup-request" ||
+          code === "auth/operation-not-supported-in-this-environment"
+        ) {
+          try {
+            await signInWithRedirect(auth, googleProvider);
+            return;
+          } catch (e2) {
+            console.error("Error de login (redirect):", e2);
+            setError("No se pudo iniciar sesión. Intenta de nuevo.");
+          }
+        } else if (code !== "auth/popup-closed-by-user") {
           console.error("Error de login:", e);
           setError("No se pudo iniciar sesión. Intenta de nuevo.");
         }
