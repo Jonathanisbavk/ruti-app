@@ -38,11 +38,16 @@ interface RutiState {
   /** true cuando ya se resolvió el estado de autenticación (Firebase o
    *  rehidratación local). El guard de sesión espera a esto. */
   authReady: boolean;
+  /** true cuando el usuario entró en modo invitado (sin Google/Firestore).
+   *  Evita que AuthProvider borre la sesión al no haber usuario de Firebase. */
+  esInvitado: boolean;
 
   // acciones
   setHydrated: () => void;
   setAuthReady: (v: boolean) => void;
   login: (u: Usuario) => void;
+  /** Entra en modo demo sin registrarse (sin Google ni Firestore). */
+  entrarInvitado: () => void;
   logout: () => void;
   setUid: (uid: string | null) => void;
   /** Carga el perfil (Firestore) en el store al iniciar sesión. */
@@ -83,11 +88,19 @@ export const useRuti = create<RutiState>()(
       ingresos: 0,
       hydrated: false,
       authReady: false,
+      esInvitado: false,
 
       setHydrated: () => set({ hydrated: true }),
       setAuthReady: (v) => set({ authReady: v }),
-      login: (u) => set({ usuario: u }),
-      logout: () => set({ usuario: null, uid: null }),
+      login: (u) => set({ usuario: u, esInvitado: false }),
+      entrarInvitado: () =>
+        set({
+          usuario: { nombre: "Invitado", email: "", avatarUrl: "" },
+          uid: null,
+          esInvitado: true,
+          authReady: true,
+        }),
+      logout: () => set({ usuario: null, uid: null, esInvitado: false }),
       setUid: (uid) => set({ uid }),
 
       hydrateProfile: (data) =>
@@ -108,6 +121,7 @@ export const useRuti = create<RutiState>()(
         set({
           usuario: null,
           uid: null,
+          esInvitado: false,
           conductor: { ...conductorVacio },
           documentos: documentosSeed.map((d) => ({ ...d, archivoNombre: null })),
           score: 62,
@@ -201,6 +215,7 @@ export const useRuti = create<RutiState>()(
       version: 1,
       partialize: (s) => ({
         usuario: s.usuario,
+        esInvitado: s.esInvitado,
         conductor: s.conductor,
         documentos: s.documentos,
         score: s.score,

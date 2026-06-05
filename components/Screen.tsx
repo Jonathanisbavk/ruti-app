@@ -28,13 +28,15 @@ export function Screen({
   const logout = useRuti((s) => s.logout);
 
   const cerrarSesion = async () => {
-    if (firebaseEnabled && auth) {
+    const esInvitado = useRuti.getState().esInvitado;
+    if (firebaseEnabled && auth && !esInvitado) {
       try {
         await signOut(auth); // AuthProvider limpia el store al detectar logout.
       } catch (e) {
         console.error("Error al cerrar sesión:", e);
       }
     } else {
+      // Modo invitado o simulado: limpiamos la sesión local.
       logout();
     }
     router.replace("/");

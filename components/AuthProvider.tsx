@@ -70,8 +70,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             })
             .catch((e) => console.error("No se pudo cargar el perfil:", e));
         } else {
+          // Sin usuario de Firebase: si es invitado (modo demo), conservamos
+          // su sesión local; si no, la limpiamos.
           perfilListo.current = false;
-          store.clearSession();
+          if (!store.esInvitado) store.clearSession();
           store.setAuthReady(true);
         }
       });

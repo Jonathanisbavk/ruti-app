@@ -38,9 +38,16 @@ function GoogleG() {
 export function GoogleLoginButton() {
   const router = useRouter();
   const login = useRuti((s) => s.login);
+  const entrarInvitado = useRuti((s) => s.entrarInvitado);
   const conductorCompleto = useRuti((s) => s.conductorCompleto);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Entra en modo demo sin registrarse (sin Google ni Firestore).
+  const probarSinRegistro = () => {
+    entrarInvitado();
+    router.push("/onboarding");
+  };
 
   const handle = async () => {
     setError(null);
@@ -105,6 +112,25 @@ export function GoogleLoginButton() {
       {error && (
         <p className="text-center text-xs text-danger">{error}</p>
       )}
+
+      <div className="flex items-center gap-3 py-0.5" aria-hidden>
+        <span className="h-px flex-1 bg-white/15" />
+        <span className="text-[11px] text-muted">o</span>
+        <span className="h-px flex-1 bg-white/15" />
+      </div>
+
+      <button
+        type="button"
+        onClick={probarSinRegistro}
+        disabled={cargando}
+        aria-label="Probar la app sin registrarse, en modo invitado"
+        className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 py-3.5 font-semibold text-foreground transition hover:bg-white/10 active:scale-[0.99] disabled:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+      >
+        Probar sin registrarme
+      </button>
+      <p className="text-center text-[11px] text-muted">
+        Modo invitado: prueba todo sin Google. Tus datos quedan solo en este dispositivo.
+      </p>
     </div>
   );
 }
