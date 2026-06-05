@@ -17,6 +17,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const lastSaved = useRef<string>("");
+  const perfilListo = useRef(false);
 
   // 1. Estado de autenticación
   useEffect(() => {
@@ -32,35 +33,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return unsub;
     }
 
-    // Completa el flujo de redirect al volver de Google (fallback de popup).
-    // onAuthStateChanged también disparará con el usuario; esto captura errores.
-    getRedirectResult(auth).catch((e) =>
-      console.error("Error al volver del login con Google:", e),
-    );
+    const authInstance = auth;
+    let unsub: () => void = () => {};
+    let cancelado = false;
 
-    const unsub = onAuthStateChanged(auth, async (fbUser) => {
-      const store = useRuti.getState();
-      if (fbUser) {
-        const usuario = {
-          nombre: fbUser.displayName ?? "Conductor RUTI",
-          email: fbUser.email ?? "",
-          avatarUrl: fbUser.photoURL ?? "",
-        };
-        store.setUid(fbUser.uid);
-        try {
-          const data = await cargarOCrearPerfil(fbUser.uid, usuario);
-          lastSaved.current = JSON.stringify(data);
-          store.hydrateProfile(data);
-        } catch (e) {
-          console.error("No se pudo cargar el perfil:", e);
-          store.login(usuario);
-        }
-      } else {
-        store.clearSession();
+    (async () => {
+      // Resuelve PRIMERO el resultado del redirect para que el primer
+      // onAuthStateChanged ya traiga al usuario (evita el "flash" que rebota
+      // al login al volver de Google con signInWithRedirect).
+      try {
+        await getRedirectResult(authInstance);
+      } catch (e) {
+        console.error("Error al volver del login con Google:", e);
       }
-      store.setAuthReady(true);
-    });
-    return unsub;
+      if (cancelado) return;
+
+      unsub = onAuthStateChanged(authInstance, (fbUser) => {
+        const store = useRuti.getState();
+        if (fbUser) {
+          const usuario = {
+            nombre: fbUser.displayName ?? "Conductor RUTI",
+            email: fbUser.email ?? "",
+            avatarUrl: fbUser.photoURL ?? "",
+          };
+          // Sesión lista de INMEDIATO; el perfil se carga en segundo plano
+          // para no bloquear ni rebotar al login si Firestore tarda o falla.
+          store.login(usuario);
+          store.setUid(fbUser.uid);
+          store.setAuthReady(true);
+          perfilListo.current = false;
+          cargarOCrearPerfil(fbUser.uid, usuario)
+            .then((data) => {
+              lastSaved.current = JSON.stringify(data);
+              store.hydrateProfile(data);
+              perfilListo.current = true;
+            })
+            .catch((e) => console.error("No se pudo cargar el perfil:", e));
+        } else {
+          perfilListo.current = false;
+          store.clearSession();
+          store.setAuthReady(true);
+        }
+      });
+    })();
+
+    return () => {
+      cancelado = true;
+      unsub();
+    };
   }, []);
 
   // 2. Autoguardado del perfil en Firestore (debounce)
@@ -68,7 +88,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!firebaseEnabled) return;
     let timer: ReturnType<typeof setTimeout>;
     const unsub = useRuti.subscribe((state) => {
-      if (!state.uid || !state.authReady) return;
+      // Sólo guarda una vez que el perfil real ya se cargó desde Firestore,
+      // para no sobrescribirlo con los valores por defecto del arranque.
+      if (!state.uid || !perfilListo.current) return;
       const snap = state.perfilSnapshot();
       if (!snap) return;
       const serial = JSON.stringify(snap);
